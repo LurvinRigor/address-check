@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Address Verification System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              inter: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body
+    class="min-h-screen bg-gradient-to-br from-blue-200 to-cyan-200 font-inter"
+  >
+    <nav class="bg-gradient-to-r from-blue-600 to-cyan-500 shadow-lg">
+      <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center h-16">
+          <a href="#" class="flex items-center">
+            <img src="/logo.png" alt="Logo" class="h-12 invert" />
+          </a>
+          <div class="flex items-center">
+            <button
+              id="logoutBtn"
+              class="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
+            >
+              <i class="fas fa-sign-out-alt mr-2"></i>Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mx-auto px-4 mt-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Left Column -->
+        <div class="md:col-span-1 space-y-6">
+          <!-- Import Users Card -->
+          <div
+            class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg p-6 border border-white/25 hover:shadow-xl transition-all duration-300"
+          >
+            <h5 class="text-xl font-bold mb-6 flex items-center">
+              <i class="fas fa-file-import text-blue-500 mr-2"></i>
+              Import Users
+            </h5>
+            <form id="uploadForm">
+              <div class="mb-6">
+                <div
+                  id="dropZone"
+                  class="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center bg-gradient-to-br from-blue-50 to-cyan-50 cursor-pointer relative transition-all duration-300 hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-100 hover:to-cyan-100 group"
+                >
+                  <div
+                    class="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 transition-all duration-300 rounded-xl"
+                  ></div>
+                  <i
+                    id="dropZoneIcon"
+                    class="fas fa-cloud-upload-alt text-5xl text-blue-400 mb-4 group-hover:text-blue-500 transition-all duration-300"
+                  ></i>
+                  <div id="dropZoneText" class="text-gray-600">
+                    <p class="text-lg font-medium mb-2">Drop your file here</p>
+                    <p class="text-sm text-gray-500">or click to browse</p>
+                    <p class="text-xs text-gray-400 mt-2">
+                      Supported formats: CSV, XLSX, XLS
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    id="fileUpload"
+                    accept=".csv,.xlsx,.xls"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold py-3.5 px-4 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center group"
+              >
+                <i
+                  class="fas fa-upload mr-2 group-hover:translate-y-[-2px] transition-transform duration-300"
+                ></i>
+                <span
+                  class="group-hover:translate-y-[-1px] transition-transform duration-300"
+                  >Upload File</span
+                >
+              </button>
+            </form>
+          </div>
+
+          <!-- Quick Stats Card -->
+          <div
+            class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg p-6 border border-white/25 hover:shadow-xl transition-all duration-300"
+          >
+            <h5 class="text-xl font-bold mb-6 flex items-center">
+              <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+              Quick Stats
+            </h5>
+            <div class="space-y-4">
+              <div
+                class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 hover:scale-[1.02] transition-all duration-300"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-lg">
+                      <i class="fas fa-users text-blue-500 text-lg"></i>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm text-gray-600">Total Users</p>
+                      <p
+                        id="totalUsers"
+                        class="text-2xl font-bold text-gray-800"
+                      >
+                        0
+                      </p>
+                    </div>
+                  </div>
+                  <div class="bg-blue-500/10 px-3 py-1 rounded-full">
+                    <span class="text-blue-600 text-sm font-medium"
+                      >Active</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-4 hover:scale-[1.02] transition-all duration-300"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="bg-amber-100 p-3 rounded-lg">
+                      <i class="fas fa-clock text-amber-500 text-lg"></i>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm text-gray-600">Pending Verifications</p>
+                      <p
+                        id="pendingVerifications"
+                        class="text-2xl font-bold text-gray-800"
+                      >
+                        0
+                      </p>
+                    </div>
+                  </div>
+                  <div class="bg-amber-500/10 px-3 py-1 rounded-full">
+                    <span class="text-amber-600 text-sm font-medium"
+                      >Waiting</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 hover:scale-[1.02] transition-all duration-300"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="bg-emerald-100 p-3 rounded-lg">
+                      <i class="fas fa-sync-alt text-emerald-500 text-lg"></i>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm text-gray-600">Recent Changes</p>
+                      <p
+                        id="recentChanges"
+                        class="text-2xl font-bold text-gray-800"
+                      >
+                        0
+                      </p>
+                    </div>
+                  </div>
+                  <div class="bg-emerald-500/10 px-3 py-1 rounded-full">
+                    <span class="text-emerald-600 text-sm font-medium"
+                      >Updated</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="md:col-span-2">
+          <div
+            class="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg p-6 border border-white/25 hover:shadow-xl transition-all duration-300"
+          >
+            <div class="flex justify-between items-center mb-6">
+              <h5 class="text-xl font-bold flex items-center">
+                <i class="fas fa-users-cog text-blue-500 mr-2"></i>
+                User Management
+              </h5>
+              <div class="relative w-72">
+                <div class="relative">
+                  <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search users..."
+                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 bg-white/50 backdrop-blur-sm"
+                  />
+                  <i
+                    class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  ></i>
+                </div>
+              </div>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-blue-100/50">
+              <table class="w-full">
+                <thead>
+                  <tr class="bg-gradient-to-r from-blue-50 to-cyan-50">
+                    <th
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                    >
+                      Client #
+                    </th>
+                    <th
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                    >
+                      Name
+                    </th>
+                    <th
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                    >
+                      Email
+                    </th>
+                    <th
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                    >
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="userTableBody" class="divide-y divide-blue-100/50">
+                  <!-- User data will be dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+            <nav class="mt-6 flex justify-center" aria-label="Page navigation">
+              <ul id="pagination" class="flex space-x-2">
+                <!-- Pagination will be dynamically populated -->
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for user details -->
+    <div
+      id="userModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-user-circle mr-2"></i>
+            User Details
+          </h3>
+          <button
+            type="button"
+            class="text-gray-500 hover:text-gray-700"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="mb-2">
+                <span class="font-semibold">Client Number:</span>
+                <span id="modalClientNumber"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">Name:</span>
+                <span id="modalName"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">First Name:</span>
+                <span id="modalFirstName"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">Last Name:</span>
+                <span id="modalLastName"></span>
+              </p>
+            </div>
+            <div>
+              <p class="mb-2">
+                <span class="font-semibold">Email:</span>
+                <span id="modalEmail"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">Alt Email:</span>
+                <span id="modalAltEmail"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">Phone:</span>
+                <span id="modalPhone"></span>
+              </p>
+              <p class="mb-2">
+                <span class="font-semibold">Alt Phone:</span>
+                <span id="modalAltPhone"></span>
+              </p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <p class="mb-2">
+              <span class="font-semibold">Address:</span>
+              <span id="modalAddress"></span>
+            </p>
+          </div>
+          <div class="mt-4">
+            <p class="mb-2">
+              <span class="font-semibold">Status:</span>
+              <span id="modalStatus"></span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Field Settings Modal -->
+    <div
+      id="fieldSettingsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-bold text-gray-800">Field Settings</h3>
+          <button
+            id="closeFieldSettings"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div id="mappingRows" class="space-y-4">
+            <!-- Mapping rows will be dynamically added here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Add Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/main.js"></script>
+  </body>
+</html>

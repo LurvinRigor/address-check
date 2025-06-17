@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-200 to-blue-100 font-inter bg-fixed">
+    <div class="container mx-auto flex justify-center items-center min-h-screen px-4">
+        <div class="bg-white/85 backdrop-blur-lg shadow-2xl rounded-3xl border border-white/25 mt-20 p-8 md:p-10 text-center max-w-xl w-full">
+            <div class="text-5xl text-blue-600 mb-4">
+                <img src="/logo.png" alt="Logo" class="h-16 mx-auto">
+            </div>
+            <div class="font-bold text-3xl mb-4">Your Address is Being Verified</div>
+            <div class="text-gray-600 text-lg mb-8" id="verify-message">
+                Thank you for submitting your address information.<br>
+                Click the button below to verify your address.
+            </div>
+            <div id="verify-spinner" class="hidden my-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <div class="mt-4 text-blue-600">Verifying your address...</div>
+            </div>
+            <div id="verify-result" class="hidden mb-4"></div>
+            <button id="verify-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200">Verify</button>
+            <a href="/" class="inline-block ml-2 border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-2 px-6 rounded-lg transition-colors duration-200">Go to Login</a>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageDiv = document.getElementById('verify-message');
+        const spinnerDiv = document.getElementById('verify-spinner');
+        const resultDiv = document.getElementById('verify-result');
+        const verifyButton = document.getElementById('verify-button');
+
+        // Get token from URL
+        const token = window.location.pathname.split('/').pop();
+
+        verifyButton.addEventListener('click', function() {
+            // Hide message and button, show spinner
+            messageDiv.classList.add('hidden');
+            verifyButton.classList.add('hidden');
+            spinnerDiv.classList.remove('hidden');
+
+            fetch(`/api/admin/verify/${token}`)
+                .then(res => res.json())
+                .then(data => {
+                    spinnerDiv.classList.add('hidden');
+                    resultDiv.classList.remove('hidden');
+                    if (data.message && data.message.toLowerCase().includes('success')) {
+                        resultDiv.innerHTML = `
+                            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                                <span class="block sm:inline">${data.message}</span>
+                            </div>`;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                                <span class="block sm:inline">${data.message || 'Verification failed.'}</span>
+                            </div>`;
+                    }
+                })
+                .catch(err => {
+                    spinnerDiv.classList.add('hidden');
+                    resultDiv.classList.remove('hidden');
+                    resultDiv.innerHTML = `
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span class="block sm:inline">Verification failed. Please try again later.</span>
+                        </div>`;
+                });
+        });
+    });
+    </script>
+</body>
+</html> 

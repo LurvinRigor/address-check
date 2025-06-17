@@ -1,0 +1,168 @@
+/* Custom styles for the admin dashboard */
+:root {
+    --admin-primary: #2c3e50;
+    --admin-secondary: #34495e;
+    --admin-accent: #3498db;
+    --admin-success: #2ecc71;
+    --admin-warning: #f1c40f;
+    --admin-danger: #e74c3c;
+}
+
+body {
+    background-color: #f5f6fa;
+}
+
+.navbar {
+    background-color: var(--admin-primary) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.card-title {
+    color: var(--admin-primary);
+    font-weight: 600;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    color: var(--admin-primary);
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    padding: 6px 12px;
+    font-weight: 500;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 8px 16px;
+}
+
+.btn-primary {
+    background-color: var(--admin-accent);
+    border-color: var(--admin-accent);
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.form-control {
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.form-control:focus {
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Stats cards */
+.list-group-item {
+    border: none;
+    padding: 15px;
+    background-color: transparent;
+}
+
+.list-group-item:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
+/* Modal customization */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    background-color: var(--admin-primary);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header .btn-close {
+    color: white;
+}
+
+/* File upload area */
+#fileUpload {
+    border: 2px dashed #dee2e6;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#fileUpload:hover {
+    border-color: var(--admin-accent);
+}
+
+/* Search bar */
+.input-group {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.input-group .form-control {
+    border-right: none;
+}
+
+.input-group .btn {
+    border-left: none;
+    background-color: white;
+}
+
+/* Pagination */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: var(--admin-accent);
+    border: none;
+    padding: 8px 16px;
+    margin: 0 2px;
+    border-radius: 4px;
+}
+
+.page-link:hover {
+    background-color: var(--admin-accent);
+    color: white;
+}
+
+.page-item.active .page-link {
+    background-color: var(--admin-accent);
+    border-color: var(--admin-accent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .card {
+        margin: 10px 0;
+    }
+    
+    .table-responsive {
+        margin: 0 -15px;
+    }
+} 

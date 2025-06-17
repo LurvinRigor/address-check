@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Address Verification System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: all 0.2s ease;
+        }
+        .glass-card:hover {
+            box-shadow: 0 16px 48px 0 rgba(31, 38, 135, 0.22);
+            transform: translateY(-2px) scale(1.01);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-200 to-blue-100 min-h-screen font-sans">
+    <script>
+        if (localStorage.getItem('adminToken')) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+    <div class="container mx-auto px-4">
+        <div class="min-h-screen flex items-center justify-center">
+            <div class="w-full max-w-md">
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="text-center mb-6">
+                        <img src="/logo.png" alt="Logo" class="h-16 mx-auto">
+                        <p class="text-gray-600 hidden" id="setupMessage">
+                            No account found. Please create one to continue.
+                        </p>
+                    </div>
+                    <form id="loginForm">
+                        <div class="mb-4" id="usernameGroup">
+                            <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                            <input type="text" id="username" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                        <div class="mb-4">
+                            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="email" required
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                            <input type="password" id="password" required minlength="6"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                            <p class="text-sm text-gray-500 mt-1">Password must be at least 6 characters long</p>
+                        </div>
+                        <div class="mb-4 hidden" id="confirmPasswordGroup">
+                            <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                            <input type="password" id="confirmPassword" minlength="6"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                            <div class="hidden text-red-500 text-sm mt-1" id="passwordMatchError">
+                                Passwords do not match
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" id="submitBtn"
+                                class="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white font-semibold py-2 px-4 rounded-lg hover:from-blue-500 hover:to-blue-300 transform hover:scale-105 transition duration-200 shadow-lg hover:shadow-xl">
+                                <i class="fas fa-sign-in-alt mr-2"></i>Login
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isFirstTimeSetup = false;
+
+        async function checkAdminExists() {
+            try {
+                const response = await fetch('/api/admin/check-setup');
+                const data = await response.json();
+                
+                if (!data.exists) {
+                    isFirstTimeSetup = true;
+                    document.getElementById('setupMessage').classList.remove('hidden');
+                    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-user-plus mr-2"></i>Create Account';
+                    document.getElementById('confirmPasswordGroup').classList.remove('hidden');
+                    document.getElementById('confirmPassword').required = true;
+                    document.getElementById('usernameGroup').classList.remove('hidden');
+                } else {
+                    document.getElementById('usernameGroup').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking admin setup:', error);
+            }
+        }
+
+        checkAdminExists();
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (isFirstTimeSetup && password !== confirmPassword) {
+                document.getElementById('confirmPassword').classList.add('border-red-500');
+                document.getElementById('passwordMatchError').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        username: isFirstTimeSetup ? username : undefined,
+                        email, 
+                        password 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('adminToken', data.token);
+                    window.location.href = '/dashboard';
+                } else {
+                    showAlert('error', data.message || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred. Please try again.');
+            }
+        });
+
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            if (this.classList.contains('border-red-500')) {
+                this.classList.remove('border-red-500');
+                document.getElementById('passwordMatchError').classList.add('hidden');
+            }
+        });
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+                type === 'error' ? 'bg-red-500' : 'bg-green-500'
+            } text-white z-50`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html> 
