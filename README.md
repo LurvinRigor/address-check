@@ -25,7 +25,7 @@ A web-based application for managing and verifying user address information. The
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/LurvinRigor/address-check.git
 cd address-verification-system
 ```
 
@@ -67,6 +67,29 @@ npm start
 
 2. Access the application:
 - User interface: http://localhost:3000
+
+## Building the Application
+
+1. Build the application:
+```bash
+# Install dependencies (if not already done)
+npm install
+
+# Build the application
+npm run build
+```
+
+2. The build process will:
+- Compile and minify JavaScript files
+- Process and optimize CSS files
+- Generate production-ready assets
+- Create a `dist` or `build` directory with optimized files
+
+3. For production deployment:
+```bash
+# Start the production server
+npm start
+```
 
 ## Database Schema
 
