@@ -331,19 +331,17 @@ async function initializeUserTable(page = 1) {
             tr.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap">${user.client_number}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${user.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.first_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.last_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.phone_number}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.alt_number}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.address}</td>
                 <td class="px-6 py-4 whitespace-nowrap">${user.email}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${user.alt_email}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 text-xs font-semibold rounded-full ${user.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
                         ${user.is_verified ? 'Verified' : 'Pending'}
                     </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <button class="text-blue-600 hover:text-blue-900 mr-2" onclick="viewUser(${user.id})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="text-red-600 hover:text-red-900" onclick="deleteUser(${user.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
