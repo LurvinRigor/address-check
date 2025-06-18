@@ -10,3 +10,5 @@ uploads/
 
 # Database
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
