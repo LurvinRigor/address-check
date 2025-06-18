@@ -12,6 +12,7 @@ const db = require('../models/database');
 const { authenticateAdmin } = require('../middleware/auth');
 const { sendVerificationEmail, sendImportCompletionNotification } = require('../utils/email');
 const crypto = require('crypto');
+const { createAlert, getUserAlerts, markAlertAsRead, markAllAlertsAsRead, deleteAlert, deleteAllAlerts } = require('../utils/alerts');
 
 // Define required fields
 const requiredFields = [
@@ -77,7 +78,8 @@ router.get('/check-setup', async (req, res) => {
 router.post('/login', [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
-    body('username').optional().isLength({ min: 3 }).withMessage('Username must be at least 3 characters long')
+    body('username').optional().isLength({ min: 3 }).withMessage('Username must be at least 3 characters long'),
+    body('mode').isIn(['login', 'register']).withMessage('Invalid mode')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -85,7 +87,7 @@ router.post('/login', [
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { username, email, password } = req.body;
+        const { username, email, password, mode } = req.body;
 
         // Check if any admin exists
         db.get('SELECT COUNT(*) as count FROM admin_users', [], async (err, result) => {
@@ -95,37 +97,51 @@ router.post('/login', [
 
             const isFirstAdmin = result.count === 0;
 
-            if (isFirstAdmin) {
-                // Validate username for first admin
+            if (mode === 'register') {
+                // Validate username for registration
                 if (!username) {
-                    return res.status(400).json({ message: 'Username is required for first admin' });
+                    return res.status(400).json({ message: 'Username is required for registration' });
                 }
 
-                // Create first admin account
-                const hashedPassword = await bcrypt.hash(password, 10);
-                db.run(
-                    'INSERT INTO admin_users (username, email, password) VALUES (?, ?, ?)',
-                    [username, email, hashedPassword],
-                    function(err) {
-                        if (err) {
-                            if (err.code === 'SQLITE_CONSTRAINT') {
-                                return res.status(400).json({ 
-                                    message: 'Username or email already exists' 
-                                });
-                            }
-                            return res.status(500).json({ message: 'Failed to create admin account' });
-                        }
-
-                        const token = jwt.sign(
-                            { id: this.lastID, email, username },
-                            process.env.JWT_SECRET,
-                            { expiresIn: '24h' }
-                        );
-
-                        res.json({ token, message: 'Admin account created successfully' });
+                // Check if user already exists
+                db.get('SELECT * FROM admin_users WHERE email = ? OR username = ?', [email, username], async (err, existingUser) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Database error' });
                     }
-                );
+
+                    if (existingUser) {
+                        return res.status(400).json({ 
+                            code: 'USER_EXISTS',
+                            message: 'A user with this email or username already exists' 
+                        });
+                    }
+
+                    // Create new admin account
+                    const hashedPassword = await bcrypt.hash(password, 10);
+                    db.run(
+                        'INSERT INTO admin_users (username, email, password) VALUES (?, ?, ?)',
+                        [username, email, hashedPassword],
+                        function(err) {
+                            if (err) {
+                                return res.status(500).json({ message: 'Failed to create admin account' });
+                            }
+
+                            const token = jwt.sign(
+                                { id: this.lastID, email, username },
+                                process.env.JWT_SECRET,
+                                { expiresIn: '24h' }
+                            );
+
+                            res.json({ token, message: 'Admin account created successfully' });
+                        }
+                    );
+                });
             } else {
+                // Login mode
+                if (isFirstAdmin) {
+                    return res.status(400).json({ message: 'No admin accounts exist. Please register first.' });
+                }
+
                 // Normal login - try both username and email
                 db.get(
                     'SELECT * FROM admin_users WHERE email = ? OR username = ?',
@@ -287,6 +303,13 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
     let filePath;
     try {
         if (!req.file) {
+            // Create alert for missing file
+            await createAlert({
+                userId: req.admin.id,
+                type: 'error',
+                message: 'File upload failed: No file provided',
+                details: { error: 'No file uploaded' }
+            });
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
@@ -299,6 +322,13 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
         try {
             fieldMapping = JSON.parse(req.body.fieldMapping || '{}');
         } catch (error) {
+            // Create alert for invalid field mapping
+            await createAlert({
+                userId: req.admin.id,
+                type: 'error',
+                message: 'File upload failed: Invalid field mapping',
+                details: { error: error.message }
+            });
             console.error('Error parsing field mapping:', error);
             return res.status(400).json({ message: 'Invalid field mapping format' });
         }
@@ -310,16 +340,48 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
             } else if (['.xlsx', '.xls'].includes(fileExt)) {
                 users = await parseExcel(filePath);
             } else {
+                // Create alert for unsupported file type
+                await createAlert({
+                    userId: req.admin.id,
+                    type: 'error',
+                    message: 'File upload failed: Unsupported file format',
+                    details: { fileType: fileExt }
+                });
                 return res.status(400).json({ message: 'Unsupported file format' });
             }
         } catch (error) {
+            // Create alert for file parsing error
+            await createAlert({
+                userId: req.admin.id,
+                type: 'error',
+                message: 'File upload failed: Error parsing file',
+                details: { error: error.message }
+            });
             console.error('Error parsing file:', error);
             return res.status(400).json({ message: 'Error parsing file. Please check the file format.' });
         }
 
         if (!users || users.length === 0) {
+            // Create alert for empty file
+            await createAlert({
+                userId: req.admin.id,
+                type: 'error',
+                message: 'File upload failed: No data found in file',
+                details: { fileName: req.file.originalname }
+            });
             return res.status(400).json({ message: 'No data found in file' });
         }
+
+        // Create alert for upload start
+        await createAlert({
+            userId: req.admin.id,
+            type: 'info',
+            message: 'File upload started',
+            details: {
+                fileName: req.file.originalname,
+                totalRecords: users.length
+            }
+        });
 
         // Apply field mapping
         users = users.map(row => {
@@ -329,12 +391,6 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
             });
             return mappedRow;
         });
-
-        // Validate required fields
-        const missingFields = requiredFields.filter(field => !Object.keys(users[0] || {}).includes(field));
-        if (missingFields.length > 0) {
-            return res.status(400).json({ message: `Missing required fields: ${missingFields.join(', ')}` });
-        }
 
         // Prepare statements
         const insertStmt = db.prepare(`
@@ -411,12 +467,45 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
                         );
                         updatedCount++;
 
+                        // Create alert for user update
+                        await createAlert({
+                            userId: req.admin.id,
+                            type: 'update',
+                            message: `User updated: ${user.email || user.client_number}`,
+                            details: {
+                                userId: existingUser.id,
+                                email: user.email,
+                                clientNumber: user.client_number,
+                                changes: {
+                                    clientNumber: user.client_number !== existingUser.client_number,
+                                    name: user.name !== existingUser.name,
+                                    firstName: user.first_name !== existingUser.first_name,
+                                    lastName: user.last_name !== existingUser.last_name,
+                                    phone: user.phone_number !== existingUser.phone_number,
+                                    altPhone: user.alt_number !== existingUser.alt_number,
+                                    address: user.address !== existingUser.address,
+                                    altEmail: user.alt_email !== existingUser.alt_email
+                                }
+                            }
+                        });
+
                         // Send verification email for updates
                         if (user.email) {
                             await sendVerificationEmail(user.email, verificationToken);
                         }
                     } else {
                         skippedCount++;
+                        // Create alert for skipped user
+                        await createAlert({
+                            userId: req.admin.id,
+                            type: 'skip',
+                            message: `User skipped (no changes): ${user.email || user.client_number}`,
+                            details: {
+                                userId: existingUser.id,
+                                email: user.email,
+                                clientNumber: user.client_number
+                            }
+                        });
                     }
                 } else {
                     // Insert new user
@@ -434,6 +523,20 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
                     );
                     insertedCount++;
 
+                    // Create alert for new user
+                    await createAlert({
+                        userId: req.admin.id,
+                        type: 'insert',
+                        message: `New user added: ${user.email || user.client_number}`,
+                        details: {
+                            email: user.email,
+                            clientNumber: user.client_number,
+                            name: user.name,
+                            firstName: user.first_name,
+                            lastName: user.last_name
+                        }
+                    });
+
                     // Send verification email for new user
                     if (user.email) {
                         await sendVerificationEmail(user.email, verificationToken);
@@ -442,6 +545,17 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
             } catch (error) {
                 console.error('Error processing user:', error);
                 skippedCount++;
+                // Create alert for processing error
+                await createAlert({
+                    userId: req.admin.id,
+                    type: 'error',
+                    message: `Error processing user: ${user.email || user.client_number}`,
+                    details: {
+                        error: error.message,
+                        email: user.email,
+                        clientNumber: user.client_number
+                    }
+                });
             }
         }
 
@@ -460,10 +574,40 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
             console.error('Failed to send import completion notification:', error);
         }
 
+        // Create summary alert
+        await createAlert({
+            userId: req.admin.id,
+            type: 'summary',
+            message: `Import summary: ${insertedCount} new, ${updatedCount} updated, ${skippedCount} skipped`,
+            details: {
+                fileName: req.file.originalname,
+                insertedCount,
+                updatedCount,
+                skippedCount,
+                totalProcessed: users.length
+            }
+        });
+        // Create alert for upload start
+        await createAlert({
+            userId: req.admin.id,
+            type: 'info',
+            message: 'File upload finished',
+            details: {
+                fileName: req.file.originalname,
+                totalRecords: users.length
+            }
+        });
         res.json({ 
             message: `Import completed: ${insertedCount} new users added, ${updatedCount} users updated, ${skippedCount} users skipped (no changes)`
         });
     } catch (error) {
+        // Create alert for general error
+        await createAlert({
+            userId: req.admin.id,
+            type: 'error',
+            message: 'File upload failed: Unexpected error',
+            details: { error: error.message }
+        });
         console.error('Error in upload process:', error);
         res.status(500).json({ message: 'Failed to import users: ' + error.message });
     } finally {
@@ -548,18 +692,45 @@ router.get('/users/:id', authenticateAdmin, (req, res) => {
 });
 
 // Delete user
-router.delete('/users/:id', authenticateAdmin, (req, res) => {
-    db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
-        if (err) {
-            return res.status(500).json({ message: 'Database error' });
-        }
+router.delete('/users/:id', authenticateAdmin, async (req, res) => {
+    try {
+        // First get the user to be deleted
+        const user = await new Promise((resolve, reject) => {
+            db.get('SELECT * FROM users WHERE id = ?', [req.params.id], (err, user) => {
+                if (err) reject(err);
+                else resolve(user);
+            });
+        });
 
-        if (this.changes === 0) {
+        if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Delete the user
+        await new Promise((resolve, reject) => {
+            db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        // Create alert for user deletion
+        await createAlert({
+            userId: req.admin.id,
+            type: 'delete',
+            message: `User ${user.email || user.client_number} has been deleted`,
+            details: {
+                deletedUserId: req.params.id,
+                deletedUserEmail: user.email,
+                deletedUserClientNumber: user.client_number
+            }
+        });
+
         res.json({ message: 'User deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Failed to delete user' });
+    }
 });
 
 // Get dashboard stats
@@ -686,7 +857,7 @@ router.post('/verify', validateUserData, async (req, res) => {
 router.get('/verify/:token', async (req, res) => {
     const { token } = req.params;
 
-    db.get('SELECT * FROM users WHERE verification_token = ?', [token], (err, user) => {
+    db.get('SELECT * FROM users WHERE verification_token = ?', [token], async (err, user) => {
         if (err) {
             return res.status(500).json({ message: 'Database error' });
         }
@@ -699,9 +870,27 @@ router.get('/verify/:token', async (req, res) => {
         db.run(
             'UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = ?',
             [user.id],
-            (err) => {
+            async (err) => {
                 if (err) {
                     return res.status(500).json({ message: 'Failed to verify user' });
+                }
+
+                // Create alert for successful verification
+                try {
+                    await createAlert({
+                        userId: 1, // Send to first admin
+                        type: 'success',
+                        message: `User ${user.email || user.client_number} verified`,
+                        details: {
+                            userId: user.id,
+                            email: user.email,
+                            clientNumber: user.client_number,
+                            name: user.name,
+                            verifiedAt: new Date().toISOString()
+                        }
+                    });
+                } catch (alertError) {
+                    console.error('Error creating verification alert:', alertError);
                 }
 
                 res.json({ message: 'Email verified successfully' });
@@ -714,7 +903,7 @@ router.get('/verify/:token', async (req, res) => {
 router.get('/api/verify/:token', async (req, res) => {
     const { token } = req.params;
 
-    db.get('SELECT * FROM users WHERE verification_token = ?', [token], (err, user) => {
+    db.get('SELECT * FROM users WHERE verification_token = ?', [token], async (err, user) => {
         if (err) {
             return res.status(500).json({ message: 'Database error' });
         }
@@ -727,9 +916,27 @@ router.get('/api/verify/:token', async (req, res) => {
         db.run(
             'UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = ?',
             [user.id],
-            (err) => {
+            async (err) => {
                 if (err) {
                     return res.status(500).json({ message: 'Failed to verify user' });
+                }
+
+                // Create alert for successful verification
+                try {
+                    await createAlert({
+                        userId: 1, // Send to first admin
+                        type: 'success',
+                        message: `User ${user.email || user.client_number} has verified their address`,
+                        details: {
+                            userId: user.id,
+                            email: user.email,
+                            clientNumber: user.client_number,
+                            name: user.name,
+                            verifiedAt: new Date().toISOString()
+                        }
+                    });
+                } catch (alertError) {
+                    console.error('Error creating verification alert:', alertError);
                 }
 
                 res.json({ message: 'Email verified successfully' });
@@ -750,6 +957,61 @@ router.post('/users/:id/verify', authenticateAdmin, (req, res) => {
         }
         res.json({ message: 'User verified successfully' });
     });
+});
+
+// Get alerts for admin
+router.get('/alerts', authenticateAdmin, async (req, res) => {
+    try {
+        const alerts = await getUserAlerts(req.admin.id);
+        res.json(alerts);
+    } catch (error) {
+        console.error('Error getting alerts:', error);
+        res.status(500).json({ message: 'Failed to get alerts' });
+    }
+});
+
+// Mark alert as read
+router.post('/alerts/:id/read', authenticateAdmin, async (req, res) => {
+    try {
+        await markAlertAsRead(req.params.id);
+        res.json({ message: 'Alert marked as read' });
+    } catch (error) {
+        console.error('Error marking alert as read:', error);
+        res.status(500).json({ message: 'Failed to mark alert as read' });
+    }
+});
+
+// Mark all alerts as read
+router.post('/alerts/read-all', authenticateAdmin, async (req, res) => {
+    try {
+        await markAllAlertsAsRead(req.admin.id);
+        res.json({ message: 'All alerts marked as read' });
+    } catch (error) {
+        console.error('Error marking all alerts as read:', error);
+        res.status(500).json({ message: 'Failed to mark all alerts as read' });
+    }
+});
+
+// Delete alert
+router.delete('/alerts/:id', authenticateAdmin, async (req, res) => {
+    try {
+        await deleteAlert(req.params.id);
+        res.json({ message: 'Alert deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting alert:', error);
+        res.status(500).json({ message: 'Failed to delete alert' });
+    }
+});
+
+// Delete all alerts
+router.delete('/alerts', authenticateAdmin, async (req, res) => {
+    try {
+        await deleteAllAlerts(req.admin.id);
+        res.json({ message: 'All alerts deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting all alerts:', error);
+        res.status(500).json({ message: 'Failed to delete all alerts' });
+    }
 });
 
 module.exports = router; 

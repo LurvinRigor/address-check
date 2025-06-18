@@ -50,6 +50,21 @@ function createTables() {
             changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )`);
+        
+        // Create new alerts table with updated schema
+        db.run(`CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            created_by INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            message TEXT NOT NULL,
+            details TEXT,
+            is_read BOOLEAN DEFAULT 0,
+            deleted_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES admin_users(id),
+            FOREIGN KEY (created_by) REFERENCES admin_users(id)
+        )`);
     });
 }
 

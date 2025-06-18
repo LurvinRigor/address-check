@@ -13,6 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="/alerts.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -34,7 +35,24 @@
           <a href="#" class="flex items-center">
             <img src="/logo.png" alt="Logo" class="h-12 invert" />
           </a>
-          <div class="flex items-center">
+          <div class="flex flex-row gap-6 items-center">
+            <div class="relative">
+              <button id="alertButton" class="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="alertBadge" class="absolute top-1 right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full hidden">0</span>
+              </button>
+              
+              <!-- Alert Panel -->
+              <div id="alertPanel" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg overflow-hidden z-50 hidden">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                  <h3 class="text-lg font-semibold text-gray-900">Notifications</h3>
+                  <button id="clearAllAlerts" class="text-sm text-blue-600 hover:text-blue-800">Clear all</button>
+                </div>
+                <div id="alertList" class="max-h-96 overflow-y-auto">
+                  <!-- Alerts will be dynamically inserted here -->
+                </div>
+              </div>
+            </div>
             <button
               id="logoutBtn"
               class="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"

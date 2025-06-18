@@ -278,6 +278,10 @@ function initializeFileUpload() {
                 hideFieldSettings();
                 initializeUserTable();
                 initializeStats();
+                // Refresh alerts after successful upload
+                if (window.alertSystem) {
+                    await window.alertSystem.loadAlerts();
+                }
                 // Reset form
                 fileInput.value = '';
                 if (dropZoneText) {
@@ -512,6 +516,10 @@ async function deleteUser(userId) {
             showAlert('success', 'User deleted successfully');
             initializeUserTable();
             initializeStats();
+            // Refresh alerts after deletion
+            if (window.alertSystem) {
+                await window.alertSystem.loadAlerts();
+            }
         } else {
             const data = await response.json();
             showAlert('danger', data.message || 'Failed to delete user');

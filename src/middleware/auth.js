@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../models/database');
 
 function authenticateAdmin(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -11,8 +12,22 @@ function authenticateAdmin(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.admin = decoded;
-        next();
+        
+        // Fetch admin user details from database
+        db.get('SELECT id, username, email FROM admin_users WHERE id = ?', [decoded.id], (err, admin) => {
+            if (err) {
+                console.error('Error fetching admin user:', err);
+                return res.status(500).json({ message: 'Internal server error' });
+            }
+            
+            if (!admin) {
+                return res.status(401).json({ message: 'Admin user not found' });
+            }
+
+            // Set admin user details in request
+            req.admin = admin;
+            next();
+        });
     } catch (error) {
         return res.status(401).json({ message: 'Invalid token' });
     }

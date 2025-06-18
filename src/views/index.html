@@ -83,6 +83,10 @@
                                 class="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white font-semibold py-2 px-4 rounded-lg hover:from-blue-500 hover:to-blue-300 transform hover:scale-105 transition duration-200 shadow-lg hover:shadow-xl">
                                 <i class="fas fa-sign-in-alt mr-2"></i>Login
                             </button>
+                            <button type="button" id="toggleModeBtn"
+                                class="w-full mt-3 text-blue-600 hover:text-blue-700 font-medium py-2 px-4 rounded-lg transition duration-200">
+                                <i class="fas fa-user-plus mr-2"></i>Create New Account
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -92,6 +96,7 @@
 
     <script>
         let isFirstTimeSetup = false;
+        let isRegistrationMode = false;
 
         async function checkAdminExists() {
             try {
@@ -115,6 +120,27 @@
 
         checkAdminExists();
 
+        document.getElementById('toggleModeBtn').addEventListener('click', function() {
+            isRegistrationMode = !isRegistrationMode;
+            const submitBtn = document.getElementById('submitBtn');
+            const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+            const usernameGroup = document.getElementById('usernameGroup');
+            
+            if (isRegistrationMode) {
+                submitBtn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Create Account';
+                confirmPasswordGroup.classList.remove('hidden');
+                document.getElementById('confirmPassword').required = true;
+                usernameGroup.classList.remove('hidden');
+                this.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Back to Login';
+            } else {
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Login';
+                confirmPasswordGroup.classList.add('hidden');
+                document.getElementById('confirmPassword').required = false;
+                usernameGroup.classList.add('hidden');
+                this.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Create New Account';
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -123,32 +149,62 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
-            if (isFirstTimeSetup && password !== confirmPassword) {
+            if ((isRegistrationMode || isFirstTimeSetup) && password !== confirmPassword) {
                 document.getElementById('confirmPassword').classList.add('border-red-500');
                 document.getElementById('passwordMatchError').classList.remove('hidden');
                 return;
             }
 
             try {
+                const mode = isRegistrationMode || isFirstTimeSetup ? 'register' : 'login';
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
-                        username: isFirstTimeSetup ? username : undefined,
+                        username: mode === 'register' ? username : undefined,
                         email, 
-                        password 
+                        password,
+                        mode
                     })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    localStorage.setItem('adminToken', data.token);
-                    window.location.href = '/dashboard';
+                    if (mode === 'register') {
+                        // After successful registration, automatically login
+                        const loginResponse = await fetch('/api/admin/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                email, 
+                                password,
+                                mode: 'login'
+                            })
+                        });
+
+                        const loginData = await loginResponse.json();
+                        if (loginResponse.ok) {
+                            localStorage.setItem('adminToken', loginData.token);
+                            window.location.href = '/dashboard';
+                        } else {
+                            showAlert('error', 'Registration successful but login failed. Please try logging in manually.');
+                        }
+                    } else {
+                        // Direct login
+                        localStorage.setItem('adminToken', data.token);
+                        window.location.href = '/dashboard';
+                    }
                 } else {
-                    showAlert('error', data.message || 'Login failed');
+                    if (mode === 'register' && data.code === 'USER_EXISTS') {
+                        showAlert('error', 'A user with this email or username already exists');
+                    } else {
+                        showAlert('error', data.message || 'Authentication failed');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
