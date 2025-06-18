@@ -10,7 +10,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const db = require('../models/database');
 const { authenticateAdmin } = require('../middleware/auth');
-const { sendVerificationEmail } = require('../utils/email');
+const { sendVerificationEmail, sendImportCompletionNotification } = require('../utils/email');
 const crypto = require('crypto');
 
 // Define required fields
@@ -448,6 +448,17 @@ router.post('/upload', authenticateAdmin, upload.single('file'), handleMulterErr
         // Finalize statements
         insertStmt.finalize();
         updateStmt.finalize();
+
+        // Send import completion notification to admin
+        try {
+            await sendImportCompletionNotification({
+                insertedCount,
+                updatedCount,
+                skippedCount
+            });
+        } catch (error) {
+            console.error('Failed to send import completion notification:', error);
+        }
 
         res.json({ 
             message: `Import completed: ${insertedCount} new users added, ${updatedCount} users updated, ${skippedCount} users skipped (no changes)`

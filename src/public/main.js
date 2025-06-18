@@ -343,6 +343,14 @@ async function initializeUserTable(page = 1) {
                         ${user.is_verified ? 'Verified' : 'Pending'}
                     </span>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <button class="text-blue-600 hover:text-blue-900 mr-2" onclick="viewUser(${user.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="text-red-600 hover:text-red-900" onclick="deleteUser(${user.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
