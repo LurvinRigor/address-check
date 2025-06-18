@@ -110,8 +110,10 @@
                     document.getElementById('confirmPasswordGroup').classList.remove('hidden');
                     document.getElementById('confirmPassword').required = true;
                     document.getElementById('usernameGroup').classList.remove('hidden');
+                    document.getElementById('toggleModeBtn').classList.add('hidden');
                 } else {
                     document.getElementById('usernameGroup').classList.add('hidden');
+                    document.getElementById('toggleModeBtn').classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Error checking admin setup:', error);

@@ -53,12 +53,25 @@
                 </div>
               </div>
             </div>
-            <button
-              id="logoutBtn"
-              class="text-white hover:text-blue-100 transition-colors duration-200 flex items-center"
-            >
-              <i class="fas fa-sign-out-alt mr-2"></i>Logout
-            </button>
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <div class="text-white flex items-center cursor-pointer" id="userInfoButton">
+                  <i class="fas fa-user-circle mr-2 text-2xl"></i>
+                  <span id="currentUserInfo">Loading...</span>
+                </div>
+                <!-- User Dropdown Menu -->
+                <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-50 hidden">
+                  <div class="py-2">
+                    <button
+                      id="logoutBtn"
+                      class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
+                      <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

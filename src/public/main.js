@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeUserTable();
     initializeSearch();
     initializeStats();
+    initializeCurrentUser();
+    initializeUserDropdown();
 
     // Event listeners
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
@@ -575,4 +577,37 @@ function showAlert(type, message) {
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
+}
+
+async function initializeCurrentUser() {
+    try {
+        const response = await fetch('/api/admin/me', {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        
+        const userInfoElement = document.getElementById('currentUserInfo');
+        userInfoElement.textContent = `${data.username}`;
+    } catch (error) {
+        console.error('Error loading current user:', error);
+        document.getElementById('currentUserInfo').textContent = 'Error loading user info';
+    }
+}
+
+function initializeUserDropdown() {
+    const userInfoButton = document.getElementById('userInfoButton');
+    const userDropdown = document.getElementById('userDropdown');
+
+    // Toggle dropdown on user info click
+    userInfoButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('hidden');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userInfoButton.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.classList.add('hidden');
+        }
+    });
 } 

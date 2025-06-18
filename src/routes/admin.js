@@ -1014,4 +1014,13 @@ router.delete('/alerts', authenticateAdmin, async (req, res) => {
     }
 });
 
+// Get current admin information
+router.get('/me', authenticateAdmin, (req, res) => {
+    res.json({
+        id: req.admin.id,
+        username: req.admin.username,
+        email: req.admin.email
+    });
+});
+
 module.exports = router; 
